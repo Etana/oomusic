@@ -13,6 +13,7 @@
                     <h1>
                         <field name="name"/>
                     </h1>
+                    <field name="fm_getinfo" widget="html"/>
                     <notebook>
                         <page string="Albums">
                             <field name="album_ids">
@@ -24,6 +25,19 @@
                                     <field name="name"/>
                                     <field name="year"/>
                                     <field name="genre_id"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Top Tracks">
+                            <field name="fm_gettoptracks">
+                                <tree string="Top Tracks">
+                                    <field name="in_playlist" invisible="1"/>
+                                    <button name="action_add_to_playlist" string="Add To Current Playlist"
+                                        icon="fa-plus" type="object" widget="oomusic_add"
+                                        attrs="{'invisible': [('in_playlist','=', True)]}"/>
+                                    <field name="name"/>
+                                    <field name="album_id"/>
+                                    <field name="track_number"/>
                                 </tree>
                             </field>
                         </page>
