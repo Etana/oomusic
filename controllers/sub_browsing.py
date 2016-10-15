@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 
 from lxml import etree
 
@@ -57,3 +58,45 @@ class MusicSubsonicSystem(http.Controller):
             return request.make_response(
                 etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
             )
+
+        # Build indexes
+        indexes_dict = {}
+        for child in folder.child_ids.sorted(lambda r: r.path):
+            name = os.path.basename(child.path)
+            if name[:4] in ['The ', 'Los ', 'Las ', 'Les ']:
+                index = name[4:][0]
+            elif name[:3] in ['El ', 'La ', 'Le ']:
+                index = name[3:][0]
+            else:
+                index = name[0].upper()
+            if index in map(str, xrange(10)):
+                index = '#'
+            elif not index.isalnum():
+                index = '?'
+
+            indexes_dict.setdefault(index, [])
+            indexes_dict[index].append(child)
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        indexes = etree.SubElement(
+            root, 'indexes',
+            lastModified=str(folder.last_modification*1000),
+            ignoredArticles='The El La Los Las Le Les',
+        )
+
+        # List of folders
+        for k, v in sorted(indexes_dict.iteritems()):
+            index = etree.SubElement(indexes, 'index', name=k)
+            for child in v:
+                etree.SubElement(
+                    index, 'artist', id=str(child.id), name=child.path.split(os.sep)[-1]
+                )
+
+        # List of tracks
+        for track in folder.track_ids:
+            child = rest.make_track(track)
+            indexes.append(child)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )

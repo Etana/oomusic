@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import binascii
+import mimetypes
 import os
 
 from lxml import etree
@@ -80,3 +81,44 @@ class SubsonicREST():
             )
         else:
             return False, self.make_error('40')
+
+    def make_track(self, track):
+        elem_track = etree.Element(
+            'child',
+            id=str(track.id),
+            parent=str(track.folder_id.id),
+            isDir='false',
+            title=track.name or '',
+            album=track.album_id.name or '',
+            artist=track.artist_id.name or '',
+            track=track.track_number or '',
+            year=track.year or '',
+            genre=track.genre_id.name or '',
+            size=str(os.path.getsize(track.path)),
+            contentType=mimetypes.guess_type(track.path)[0],
+            suffix=os.path.splitext(track.path)[1].lstrip('.'),
+            transcodedContentType='audio/mpeg',
+            transcodedSuffix='mp3',
+            duration=str(track.duration),
+            bitRate=str(track.bitrate),
+            path=os.path.basename(track.path),
+        )
+
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.4.0']:
+            elem_track.set('isVideo', 'false')
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.6.0']:
+            elem_track.set('userRating', track.rating or '1')
+            elem_track.set('averageRating', track.rating or '1')
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.14.0']:
+            elem_track.set('playCount', str(track.play_count))
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.8.0']:
+            elem_track.set('discNumber', track.disc or '')
+            elem_track.set('created', track.create_date.replace(' ', 'T') + 'Z')
+            elem_track.set('starred', track.write_date.replace(' ', 'T') + 'Z')
+            elem_track.set('albumId', str(track.album_id.id))
+            elem_track.set('artistId', str(track.artist_id.id))
+            elem_track.set('type', 'music')
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.10.2']:
+            elem_track.set('bookmarkPosition', '0.0')
+
+        return elem_track
