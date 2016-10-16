@@ -89,6 +89,40 @@ class MusicSubsonicSystem(http.Controller):
             index = etree.SubElement(indexes, 'index', name=k)
             for child in v:
                 etree.SubElement(
+                    index, 'artist', id=str(child.id), name=os.path.basename(child.path)
+                )
+
+        # List of tracks
+        for track in folder.track_ids:
+            child = rest.make_track(track)
+            indexes.append(child)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )
+
+    @http.route(['/rest/getMusicDirectory.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getMusicDirectory(self, **kwargs):
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        folderId = kwargs.get('id')
+        folder = request.env['oomusic.folder'].browse([int(folderId)])
+        if not folder.exists():
+            return rest.make_error('70', 'Folder not found')
+
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        directory = rest.make_directory(folder)
+        root.append(directory)
+
+        # List of folders
+        for k, v in sorted(indexes_dict.iteritems()):
+            index = etree.SubElement(indexes, 'index', name=k)
+            for child in v:
+                etree.SubElement(
                     index, 'artist', id=str(child.id), name=child.path.split(os.sep)[-1]
                 )
 

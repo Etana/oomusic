@@ -82,6 +82,28 @@ class SubsonicREST():
         else:
             return False, self.make_error('40')
 
+    def make_directory(self, folder):
+        elem_directory = etree.Element(
+            'directory',
+            id=str(folder.id),
+            parent=str(folder.parent_id.id) if folder.parent_id else 'false',
+            name=os.path.basename(folder.path),
+            userRating=folder.rating,
+        )
+
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.10.2']:
+            if folder.star == ('1'):
+                elem_directory.set('starred', folder.write_date.replace(' ', 'T') + 'Z')
+
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.13.0']:
+            elem_directory.set('userRating', folder.rating or '1')
+            elem_directory.set('averageRating', folder.rating or '1')
+
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.14.0']:
+            elem_directory.set('playCount', sum(folder.track_ids.mapped('play_count')) or '0')
+
+        return elem_directory
+
     def make_track(self, track):
         elem_track = etree.Element(
             'child',
@@ -114,7 +136,8 @@ class SubsonicREST():
         if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.8.0']:
             elem_track.set('discNumber', track.disc or '')
             elem_track.set('created', track.create_date.replace(' ', 'T') + 'Z')
-            elem_track.set('starred', track.write_date.replace(' ', 'T') + 'Z')
+            if track.star == ('1'):
+                elem_track.set('starred', track.write_date.replace(' ', 'T') + 'Z')
             elem_track.set('albumId', str(track.album_id.id))
             elem_track.set('artistId', str(track.artist_id.id))
             elem_track.set('type', 'music')

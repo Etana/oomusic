@@ -41,6 +41,11 @@ class MusicFolder(models.Model):
     path_name = fields.Char('Folder Name', compute='_compute_path_name')
     in_playlist = fields.Boolean('In Current Playlist', compute='_compute_in_playlist')
     track_ids = fields.One2many('oomusic.track', 'folder_id', 'Tracks')
+    star = fields.Selection(
+        [('0', 'Normal'), ('1', 'I Like It!')], 'Favorite', index=True, default='0')
+    rating = fields.Selection(
+        [('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')], 'Rating', default='1'
+    )
 
     image_folder = fields.Binary(
         'Folder Image', compute='_compute_image_folder',
