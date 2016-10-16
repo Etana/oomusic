@@ -184,3 +184,13 @@ class SubsonicREST():
             elem_track.set('bookmarkPosition', '0.0')
 
         return elem_track
+
+    def make_genre(self, genre):
+        elem_genre = etree.Element('genre')
+        elem_genre.text = genre.name
+
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.10.2']:
+            elem_genre.set('songCount', str(len(genre.track_ids)))
+            elem_genre.set('albumCount', str(len(genre.album_ids)))
+
+        return elem_genre

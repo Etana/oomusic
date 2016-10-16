@@ -48,7 +48,8 @@ class MusicTrack(models.Model):
     star = fields.Selection(
         [('0', 'Normal'), ('1', 'I Like It!')], 'Favorite', index=True, default='0')
     rating = fields.Selection(
-        [('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')], 'Rating', default='1'
+        [('0', '0'), ('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')],
+        'Rating', default='0',
     )
 
     @api.depends('playlist_line_ids')

@@ -94,8 +94,8 @@ class MusicSubsonicSystem(http.Controller):
 
         # List of tracks
         for track in folder.track_ids:
-            child = rest.make_track(track)
-            indexes.append(child)
+            xml_data = rest.make_track(track)
+            indexes.append(xml_data)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
@@ -119,13 +119,31 @@ class MusicSubsonicSystem(http.Controller):
 
         # List of folders
         for child in folder.child_ids:
-            directory_child = rest.make_directory_child(child)
-            directory.append(directory_child)
+            xml_data = rest.make_directory_child(child)
+            directory.append(xml_data)
 
         # List of tracks
         for track in folder.track_ids:
-            child = rest.make_track(track)
-            directory.append(child)
+            xml_data = rest.make_track(track)
+            directory.append(xml_data)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )
+
+    @http.route(['/rest/getGenres.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getGenres(self, **kwargs):
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        genres = etree.SubElement(root, 'genres')
+
+        for genre in request.env['oomusic.genre'].search([]):
+            xml_data = rest.make_genre(genre)
+            genres.append(xml_data)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
