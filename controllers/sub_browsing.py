@@ -113,23 +113,19 @@ class MusicSubsonicSystem(http.Controller):
         if not folder.exists():
             return rest.make_error('70', 'Folder not found')
 
-
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
         directory = rest.make_directory(folder)
         root.append(directory)
 
         # List of folders
-        for k, v in sorted(indexes_dict.iteritems()):
-            index = etree.SubElement(indexes, 'index', name=k)
-            for child in v:
-                etree.SubElement(
-                    index, 'artist', id=str(child.id), name=child.path.split(os.sep)[-1]
-                )
+        for child in folder.child_ids:
+            directory_child = rest.make_directory_child(child)
+            directory.append(directory_child)
 
         # List of tracks
         for track in folder.track_ids:
             child = rest.make_track(track)
-            indexes.append(child)
+            directory.append(child)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
