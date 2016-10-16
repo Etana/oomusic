@@ -20,11 +20,11 @@ class MusicSubsonicSystem(http.Controller):
             return response
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
-        musicFolders = rest.make_musicFolders()
+        musicFolders = rest.make_MusicFolders()
         root.append(musicFolders)
 
         for folder in request.env['oomusic.folder'].search([('root', '=', True)]):
-            musicFolder = rest.make_musicFolder(folder)
+            musicFolder = rest.make_MusicFolder(folder)
             musicFolders.append(musicFolder)
 
         return request.make_response(
@@ -53,50 +53,32 @@ class MusicSubsonicSystem(http.Controller):
             if not folder.exists():
                 return rest.make_error('70', 'Folder not found')
 
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        xml_indexes = rest.make_Indexes(folder)
+
         if ifModifiedSince is not None and folder.last_modification < ifModifiedSince:
-            root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
-            etree.SubElement(root, 'indexes', lastModified=str(folder.last_modification*1000))
+            root.append(xml_indexes)
             return request.make_response(
                 etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
             )
 
         # Build indexes
-        indexes_dict = {}
-        for child in folder.child_ids.sorted(lambda r: r.path):
-            name = os.path.basename(child.path)
-            if name[:4] in ['The ', 'Los ', 'Las ', 'Les ']:
-                index = name[4:][0]
-            elif name[:3] in ['El ', 'La ', 'Le ']:
-                index = name[3:][0]
-            else:
-                index = name[0].upper()
-            if index in map(str, xrange(10)):
-                index = '#'
-            elif not index.isalnum():
-                index = '?'
-
-            indexes_dict.setdefault(index, [])
-            indexes_dict[index].append(child)
-
-        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
-        xml_indexes = etree.SubElement(
-            root, 'indexes',
-            lastModified=str(folder.last_modification*1000),
-            ignoredArticles='The El La Los Las Le Les',
-        )
+        indexes_dict = rest.build_dict_indexes_folder(folder)
 
         # List of folders
         for k, v in sorted(indexes_dict.iteritems()):
-            xml_index = etree.SubElement(xml_indexes, 'index', name=k)
+            xml_index = rest.make_Index(k)
             for child in v:
-                etree.SubElement(
-                    xml_index, 'artist', id=str(child.id), name=os.path.basename(child.path)
-                )
+                xml_data = rest.make_Artist(child)
+                xml_index.append(xml_data)
+            xml_indexes.append(xml_index)
 
         # List of tracks
         for track in folder.track_ids:
-            xml_data = rest.make_track(track)
+            xml_data = rest.make_Child_track(track)
             xml_indexes.append(xml_data)
+
+        root.append(xml_indexes)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)

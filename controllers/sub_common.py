@@ -37,6 +37,7 @@ API_ERROR_LIST = {
     '60': 'The trial period for the Subsonic server is over. Please upgrade to Subsonic Premium.',
     '70': 'The requested data was not found.',
 }
+IGNORED_ARTICLES = ['The', 'El', 'La', 'Los', 'Las', 'Le', 'Les']
 
 class SubsonicREST():
     def __init__(self, args):
@@ -82,15 +83,107 @@ class SubsonicREST():
         else:
             return False, self.make_error('40')
 
-    def make_musicFolders(self):
+    def build_dict_indexes_folder(self, folder):
+        indexes_dict = {}
+        for child in folder.child_ids:
+            name = os.path.basename(child.path)
+            if name[:4] in [e + ' ' for e in IGNORED_ARTICLES if len(e) == 3]:
+                index = name[4:][0]
+            elif name[:3] in [e + ' ' for e in IGNORED_ARTICLES if len(e) == 2]:
+                index = name[3:][0]
+            else:
+                index = name[0].upper()
+            if index in map(str, xrange(10)):
+                index = '#'
+            elif not index.isalnum():
+                index = '?'
+
+            indexes_dict.setdefault(index, [])
+            indexes_dict[index].append(child)
+
+        return indexes_dict
+
+    def make_MusicFolders(self):
         return etree.Element('musicFolders')
 
-    def make_musicFolder(self, folder):
+    def make_MusicFolder(self, folder):
         return etree.Element(
             'musicFolder',
             id=str(folder.id),
             name=folder.name or os.path.basename(folder.path),
         )
+
+    def make_Indexes(self, folder):
+        return etree.Element(
+            'indexes',
+            lastModified=str(folder.last_modification*1000),
+            ignoredArticles=' '.join(IGNORED_ARTICLES),
+        )
+
+    def make_Index(self, index):
+        return etree.Element('index', name=index)
+
+    def make_Artist(self, folder):
+        elem_artist = etree.Element(
+            'artist',
+            id=str(folder.id),
+            name=os.path.basename(folder.path),
+        )
+
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.10.2']:
+            if folder.star == '1':
+                elem_artist.set('starred', folder.write_date.replace(' ', 'T') + 'Z')
+
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.13.0']:
+            if folder.rating and folder.rating != '0':
+                elem_artist.set('userRating', folder.rating)
+                elem_artist.set('averageRating', folder.rating)
+
+        return elem_artist
+
+    def make_Child_track(self, track):
+        elem_track = etree.Element(
+            'child',
+            id=str(track.id),
+            parent=str(track.folder_id.id),
+            isDir='false',
+            title=track.name or '',
+            album=track.album_id.name or '',
+            artist=track.artist_id.name or '',
+            track=track.track_number or '',
+            year=track.year or '',
+            genre=track.genre_id.name or '',
+            size=str(os.path.getsize(track.path)),
+            contentType=mimetypes.guess_type(track.path)[0],
+            suffix=os.path.splitext(track.path)[1].lstrip('.'),
+            transcodedContentType='audio/mpeg',
+            transcodedSuffix='mp3',
+            duration=str(track.duration),
+            bitRate=str(track.bitrate),
+            path=os.path.basename(track.path),
+        )
+
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.4.0']:
+            elem_track.set('isVideo', 'false')
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.6.0']:
+            if track.rating and track.rating != '0':
+                elem_track.set('userRating', track.rating)
+                elem_track.set('averageRating', track.rating)
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.14.0']:
+            elem_track.set('playCount', str(track.play_count))
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.8.0']:
+            elem_track.set('discNumber', track.disc or '')
+            elem_track.set('created', track.create_date.replace(' ', 'T') + 'Z')
+            if track.star == '1':
+                elem_track.set('starred', track.write_date.replace(' ', 'T') + 'Z')
+            elem_track.set('albumId', str(track.album_id.id))
+            elem_track.set('artistId', str(track.artist_id.id))
+            elem_track.set('type', 'music')
+        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.10.2']:
+            elem_track.set('bookmarkPosition', '0.0')
+
+        return elem_track
+
 
     def make_directory(self, folder):
         elem_directory = etree.Element(
@@ -151,49 +244,6 @@ class SubsonicREST():
             elem_directory.set('created', folder.create_date.replace(' ', 'T') + 'Z')
 
         return elem_directory
-
-    def make_track(self, track):
-        elem_track = etree.Element(
-            'child',
-            id=str(track.id),
-            parent=str(track.folder_id.id),
-            isDir='false',
-            title=track.name or '',
-            album=track.album_id.name or '',
-            artist=track.artist_id.name or '',
-            track=track.track_number or '',
-            year=track.year or '',
-            genre=track.genre_id.name or '',
-            size=str(os.path.getsize(track.path)),
-            contentType=mimetypes.guess_type(track.path)[0],
-            suffix=os.path.splitext(track.path)[1].lstrip('.'),
-            transcodedContentType='audio/mpeg',
-            transcodedSuffix='mp3',
-            duration=str(track.duration),
-            bitRate=str(track.bitrate),
-            path=os.path.basename(track.path),
-        )
-
-        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.4.0']:
-            elem_track.set('isVideo', 'false')
-        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.6.0']:
-            if track.rating and track.rating != '0':
-                elem_track.set('userRating', track.rating)
-                elem_track.set('averageRating', track.rating)
-        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.14.0']:
-            elem_track.set('playCount', str(track.play_count))
-        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.8.0']:
-            elem_track.set('discNumber', track.disc or '')
-            elem_track.set('created', track.create_date.replace(' ', 'T') + 'Z')
-            if track.star == '1':
-                elem_track.set('starred', track.write_date.replace(' ', 'T') + 'Z')
-            elem_track.set('albumId', str(track.album_id.id))
-            elem_track.set('artistId', str(track.artist_id.id))
-            elem_track.set('type', 'music')
-        if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.10.2']:
-            elem_track.set('bookmarkPosition', '0.0')
-
-        return elem_track
 
     def make_genre(self, genre):
         elem_genre = etree.Element('genre')
