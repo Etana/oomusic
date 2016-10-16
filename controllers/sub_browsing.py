@@ -20,12 +20,13 @@ class MusicSubsonicSystem(http.Controller):
             return response
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
-        musicFolders = etree.SubElement(root, 'musicFolders')
+        musicFolders = rest.make_musicFolders()
+        root.append(musicFolders)
 
         for folder in request.env['oomusic.folder'].search([('root', '=', True)]):
-            etree.SubElement(
-                musicFolders, 'musicFolder', id=str(folder.id), name=folder.name or folder.path
-            )
+            musicFolder = rest.make_musicFolder(folder)
+            musicFolders.append(musicFolder)
+
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
@@ -78,7 +79,7 @@ class MusicSubsonicSystem(http.Controller):
             indexes_dict[index].append(child)
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
-        indexes = etree.SubElement(
+        xml_indexes = etree.SubElement(
             root, 'indexes',
             lastModified=str(folder.last_modification*1000),
             ignoredArticles='The El La Los Las Le Les',
@@ -86,16 +87,16 @@ class MusicSubsonicSystem(http.Controller):
 
         # List of folders
         for k, v in sorted(indexes_dict.iteritems()):
-            index = etree.SubElement(indexes, 'index', name=k)
+            xml_index = etree.SubElement(xml_indexes, 'index', name=k)
             for child in v:
                 etree.SubElement(
-                    index, 'artist', id=str(child.id), name=os.path.basename(child.path)
+                    xml_index, 'artist', id=str(child.id), name=os.path.basename(child.path)
                 )
 
         # List of tracks
         for track in folder.track_ids:
             xml_data = rest.make_track(track)
-            indexes.append(xml_data)
+            xml_indexes.append(xml_data)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
@@ -114,18 +115,18 @@ class MusicSubsonicSystem(http.Controller):
             return rest.make_error('70', 'Folder not found')
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
-        directory = rest.make_directory(folder)
-        root.append(directory)
+        xml_directory = rest.make_directory(folder)
+        root.append(xml_directory)
 
         # List of folders
         for child in folder.child_ids:
             xml_data = rest.make_directory_child(child)
-            directory.append(xml_data)
+            xml_directory.append(xml_data)
 
         # List of tracks
         for track in folder.track_ids:
             xml_data = rest.make_track(track)
-            directory.append(xml_data)
+            xml_directory.append(xml_data)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
@@ -139,11 +140,57 @@ class MusicSubsonicSystem(http.Controller):
             return response
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
-        genres = etree.SubElement(root, 'genres')
+        xml_genres = etree.SubElement(root, 'genres')
 
         for genre in request.env['oomusic.genre'].search([]):
             xml_data = rest.make_genre(genre)
-            genres.append(xml_data)
+            xml_genres.append(xml_data)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )
+
+    @http.route(['/rest/getArtists.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getArtists(self, **kwargs):
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        xml_artists = etree.SubElement(root, 'artists', ignoredArticles='The El La Los Las Le Les')
+
+        # Build indexes
+        musicFolderId = kwargs.get('musicFolderId')
+        if musicFolderId:
+            artists = request.env['oomusic.track'].search([
+                ('folder_id', 'child_of', musicFolderId)
+            ]).mapped('artist_id')
+        else:
+            artists = request.env['oomusic.artist'].search([])
+
+        indexes_dict = {}
+        for artist in artists:
+            name = artist.name
+            if name[:4] in ['The ', 'Los ', 'Las ', 'Les ']:
+                index = name[4:][0]
+            elif name[:3] in ['El ', 'La ', 'Le ']:
+                index = name[3:][0]
+            else:
+                index = name[0].upper()
+            if index in map(str, xrange(10)):
+                index = '#'
+            elif not index.isalnum():
+                index = '?'
+
+            indexes_dict.setdefault(index, [])
+            indexes_dict[index].append(artist)
+
+        for k, v in sorted(indexes_dict.iteritems()):
+            xml_index = etree.SubElement(xml_artists, 'index', name=k)
+            for artist in v:
+                xml_artist = rest.make_artist(artist)
+                xml_index.append(xml_artist)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
