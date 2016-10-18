@@ -358,9 +358,10 @@ class SubsonicREST():
         artist = request.env['oomusic.artist'].search([
             ('name', 'ilike', os.path.basename(folder.path))
         ])
-        base_artist_info = self._make_ArtistInfoBase(artist)
-        for elem in base_artist_info:
-            elem_artist_info.append(elem)
+        if artist:
+            base_artist_info = self._make_ArtistInfoBase(artist[0])
+            for elem in base_artist_info:
+                elem_artist_info.append(elem)
 
         # TODO: support similar artists
 
@@ -376,3 +377,36 @@ class SubsonicREST():
         # TODO: support similar artists
 
         return elem_artist_info
+
+    def make_AlbumInfo(self, folder):
+        album = request.env['oomusic.album'].search([
+            ('name', 'ilike', os.path.basename(folder.path))
+        ])
+        if album:
+            return self.make_AlbumInfo2(album[0])
+        else:
+            return etree.Element('albumInfo')
+
+    def make_AlbumInfo2(self, album):
+        elem_album_info = etree.Element('albumInfo')
+
+        # TODO: support album info
+
+        return elem_album_info
+
+    def make_SimilarSongs2(self, track, count=50, tag_name='similarSongs2'):
+        elem_song_info = etree.Element(tag_name)
+
+        # TODO: support similar songs
+
+        return elem_song_info
+
+    def make_TopSongs(self, artist_name, count=50):
+        elem_song_info = etree.Element('topSongs')
+
+        artist = request.env['oomusic.artist'].search([('name', 'ilike', artist_name)])
+        if artist:
+            for track in artist[0].fm_gettoptracks[:count]:
+                elem_song_info.append(self.make_Child_track(track, tag_name='song'))
+
+        return elem_song_info
