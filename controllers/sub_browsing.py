@@ -178,7 +178,7 @@ class MusicSubsonicSystem(http.Controller):
             if not artist.exists():
                 return rest.make_error('70', 'Artist not found')
         else:
-            return rest.make_error('10', 'Required artist ID missing.')
+            return rest.make_error('10', 'Required int parameter "id" is not present')
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
         xml_artist = rest.make_ArtistID3(artist)
@@ -187,6 +187,56 @@ class MusicSubsonicSystem(http.Controller):
         for album in artist.album_ids:
             xml_album = rest.make_AlbumID3(album)
             xml_artist.append(xml_album)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )
+
+    @http.route(['/rest/getAlbum.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getAlbum(self, **kwargs):
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        albumId = kwargs.get('id')
+        if albumId:
+            album = request.env['oomusic.album'].browse([int(albumId)])
+            if not album.exists():
+                return rest.make_error('70', 'Album not found')
+        else:
+            return rest.make_error('10', 'Required int parameter "id" is not present')
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        xml_album = rest.make_AlbumID3(album)
+        root.append(xml_album)
+
+        for track in album.track_ids:
+            xml_song = rest.make_Child_track(track, tag_name='song')
+            xml_album.append(xml_song)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )
+
+    @http.route(['/rest/getSong.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getSong(self, **kwargs):
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        songId = kwargs.get('id')
+        if songId:
+            track = request.env['oomusic.track'].browse([int(songId)])
+            if not track.exists():
+                return rest.make_error('70', 'Song not found')
+        else:
+            return rest.make_error('10', 'Required int parameter "id" is not present')
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        xml_song = rest.make_Child_track(track, tag_name='song')
+        root.append(xml_song)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)

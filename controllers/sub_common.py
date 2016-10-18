@@ -161,9 +161,9 @@ class SubsonicREST():
 
         return elem_artist
 
-    def make_Child_track(self, track):
+    def make_Child_track(self, track, tag_name='child'):
         elem_track = etree.Element(
-            'child',
+            tag_name,
             id=str(track.id),
             parent=str(track.folder_id.id),
             isDir='false',
