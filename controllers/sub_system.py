@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import logging
-
 from lxml import etree
 
 from odoo import http
 from odoo.http import request
 from sub_common import SubsonicREST, API_VERSION
 
-_logger = logging.getLogger(__name__)
-
 class MusicSubsonicSystem(http.Controller):
-    @http.route(['/rest/ping.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/ping.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def ping(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
         return response
 
-    @http.route(['/rest/getLicense.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getLicense.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getLicense(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()

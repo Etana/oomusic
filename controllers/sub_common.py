@@ -224,14 +224,21 @@ class SubsonicREST():
 
         if folder.track_ids:
             track = folder.track_ids[0]
-            elem_directory.set('album', track.album_id.name or '')
-            elem_directory.set('artist', track.artist_id.name or '')
-            elem_directory.set('year', track.year or '')
-            elem_directory.set('genre', track.genre_id.name or '')
+            if track.album_id.name:
+                elem_directory.set('album', track.album_id.name)
+            if track.artist_id.name:
+                elem_directory.set('artist', track.artist_id.name)
+            if track.year:
+                elem_directory.set('year', track.year)
+            if track.genre_id.name:
+                elem_directory.set('genre', track.genre_id.name)
             if API_VERSION_LIST[self.version] >= API_VERSION_LIST['1.8.0']:
-                elem_directory.set('discNumber', track.disc or '')
-                elem_directory.set('albumId', str(track.album_id.id))
-                elem_directory.set('artistId', str(track.artist_id.id))
+                if track.disc:
+                    elem_directory.set('discNumber', track.disc)
+                if track.album_id:
+                    elem_directory.set('albumId', str(track.album_id.id))
+                if track.artist_id:
+                    elem_directory.set('artistId', str(track.artist_id.id))
 
         if folder.parent_id:
             elem_directory.set('parent', str(folder.parent_id.id))
@@ -410,3 +417,6 @@ class SubsonicREST():
                 elem_song_info.append(self.make_Child_track(track, tag_name='song'))
 
         return elem_song_info
+
+    def make_AlbumList2(self):
+        return etree.Element('albumList2')

@@ -1,18 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import logging
-import os
-
 from lxml import etree
 
 from odoo import http
 from odoo.http import request
 from sub_common import SubsonicREST, API_VERSION
 
-_logger = logging.getLogger(__name__)
-
-class MusicSubsonicSystem(http.Controller):
-    @http.route(['/rest/getMusicFolders.view'], type='http', auth='public', methods=['GET', 'POST'])
+class MusicSubsonicBrowsing(http.Controller):
+    @http.route(['/rest/getMusicFolders.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getMusicFolders(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -20,18 +15,18 @@ class MusicSubsonicSystem(http.Controller):
             return response
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
-        musicFolders = rest.make_MusicFolders()
-        root.append(musicFolders)
+        xml_music_folders = rest.make_MusicFolders()
+        root.append(xml_music_folders)
 
         for folder in request.env['oomusic.folder'].search([('root', '=', True)]):
-            musicFolder = rest.make_MusicFolder(folder)
-            musicFolders.append(musicFolder)
+            xml_music_folder = rest.make_MusicFolder(folder)
+            xml_music_folders.append(xml_music_folder)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getIndexes.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getIndexes.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getIndexes(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -82,7 +77,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getMusicDirectory.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getMusicDirectory.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getMusicDirectory(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -115,7 +110,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getGenres.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getGenres.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getGenres(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -134,7 +129,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getArtists.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getArtists.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getArtists(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -168,7 +163,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getArtist.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getArtist.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getArtist(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -195,7 +190,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getAlbum.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getAlbum.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getAlbum(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -222,7 +217,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getSong.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getSong.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getSong(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -245,7 +240,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getVideos.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getVideos.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getVideos(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -260,7 +255,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getVideoInfo.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getVideoInfo.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getVideoInfo(self, **kwargs):
         # TODO: support video infos
         rest = SubsonicREST(kwargs)
@@ -270,7 +265,7 @@ class MusicSubsonicSystem(http.Controller):
 
         return request.make_error(code='30', message='Videos are not supported yet')
 
-    @http.route(['/rest/getArtistInfo.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getArtistInfo.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getArtistInfo(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -301,7 +296,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getArtistInfo2.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getArtistInfo2.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getArtistInfo2(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -332,7 +327,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getAlbumInfo.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getAlbumInfo.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getAlbumInfo(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -355,7 +350,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getAlbumInfo2.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getAlbumInfo2.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getAlbumInfo2(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -378,11 +373,11 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getSimilarSongs.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getSimilarSongs.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getSimilarSongs(self, **kwargs):
         return self.getSimilarSongs2(**dict(kwargs, tag_name='similarSongs'))
 
-    @http.route(['/rest/getSimilarSongs2.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getSimilarSongs2.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getSimilarSongs2(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
@@ -408,7 +403,7 @@ class MusicSubsonicSystem(http.Controller):
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
         )
 
-    @http.route(['/rest/getTopSongs.view'], type='http', auth='public', methods=['GET', 'POST'])
+    @http.route(['/rest/getTopSongs.view'], type='http', auth='public', csrf=False, methods=['GET', 'POST'])
     def getTopSongs(self, **kwargs):
         rest = SubsonicREST(kwargs)
         success, response = rest.check_login()
