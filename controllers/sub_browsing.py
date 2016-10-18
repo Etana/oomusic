@@ -43,7 +43,7 @@ class MusicSubsonicSystem(http.Controller):
             try:
                 ifModifiedSince = int(ifModifiedSince) / 1000
             except:
-                return rest.make_error('0', 'Invalid timestamp')
+                return rest.make_error(code='0', message='Invalid timestamp')
 
         musicFolderId = kwargs.get('musicFolderId')
         if musicFolderId is None:
@@ -51,7 +51,7 @@ class MusicSubsonicSystem(http.Controller):
         else:
             folder = request.env['oomusic.folder'].browse([int(musicFolderId)])
             if not folder.exists():
-                return rest.make_error('70', 'Folder not found')
+                return rest.make_error(code='70', message='Folder not found')
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
         xml_indexes = rest.make_Indexes(folder)
@@ -90,9 +90,12 @@ class MusicSubsonicSystem(http.Controller):
             return response
 
         folderId = kwargs.get('id')
-        folder = request.env['oomusic.folder'].browse([int(folderId)])
-        if not folder.exists():
-            return rest.make_error('70', 'Folder not found')
+        if folderId:
+            folder = request.env['oomusic.folder'].browse([int(folderId)])
+            if not folder.exists():
+                return rest.make_error(code='70', message='Folder not found')
+        else:
+            return rest.make_error(code='10', message='Required int parameter "id" is not present')
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
         xml_directory = rest.make_Directory(folder)
@@ -176,9 +179,9 @@ class MusicSubsonicSystem(http.Controller):
         if artistId:
             artist = request.env['oomusic.artist'].browse([int(artistId)])
             if not artist.exists():
-                return rest.make_error('70', 'Artist not found')
+                return rest.make_error(code='70', message='Artist not found')
         else:
-            return rest.make_error('10', 'Required int parameter "id" is not present')
+            return rest.make_error(code='10', message='Required int parameter "id" is not present')
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
         xml_artist = rest.make_ArtistID3(artist)
@@ -203,9 +206,9 @@ class MusicSubsonicSystem(http.Controller):
         if albumId:
             album = request.env['oomusic.album'].browse([int(albumId)])
             if not album.exists():
-                return rest.make_error('70', 'Album not found')
+                return rest.make_error(code='70', message='Album not found')
         else:
-            return rest.make_error('10', 'Required int parameter "id" is not present')
+            return rest.make_error(code='10', message='Required int parameter "id" is not present')
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
         xml_album = rest.make_AlbumID3(album)
@@ -230,13 +233,100 @@ class MusicSubsonicSystem(http.Controller):
         if songId:
             track = request.env['oomusic.track'].browse([int(songId)])
             if not track.exists():
-                return rest.make_error('70', 'Song not found')
+                return rest.make_error(code='70', message='Song not found')
         else:
-            return rest.make_error('10', 'Required int parameter "id" is not present')
+            return rest.make_error(code='10', message='Required int parameter "id" is not present')
 
         root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
         xml_song = rest.make_Child_track(track, tag_name='song')
         root.append(xml_song)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )
+
+    @http.route(['/rest/getVideos.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getVideos(self, **kwargs):
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        xml_videos = rest.make_Videos()
+        root.append(xml_videos)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )
+
+    @http.route(['/rest/getVideoInfo.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getVideoInfo(self, **kwargs):
+        # TODO: support video infos
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        return request.make_error(code='30', message='Videos are not supported yet')
+
+    @http.route(['/rest/getArtistInfo.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getArtistInfo(self, **kwargs):
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        folderId = kwargs.get('id')
+        if folderId:
+            folder = request.env['oomusic.folder'].browse([int(folderId)])
+            if not folder.exists():
+                return rest.make_error(code='70', message='Folder not found')
+        else:
+            return rest.make_error(code='10', message='Required int parameter "id" is not present')
+
+        count = int(kwargs.get('count', 20))
+        if kwargs.get('includeNotPresent'):
+            includeNotPresent = True if kwargs.get('includeNotPresent') == 'true' else False
+        else:
+            includeNotPresent = False
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        xml_artist_info = rest.make_ArtistInfo(
+            folder, count=count, includeNotPresent=includeNotPresent
+        )
+        root.append(xml_artist_info)
+
+        return request.make_response(
+            etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)
+        )
+
+    @http.route(['/rest/getArtistInfo2.view'], type='http', auth='public', methods=['GET', 'POST'])
+    def getArtistInfo2(self, **kwargs):
+        rest = SubsonicREST(kwargs)
+        success, response = rest.check_login()
+        if not success:
+            return response
+
+        artistId = kwargs.get('id')
+        if artistId:
+            artist = request.env['oomusic.artist'].browse([int(artistId)])
+            if not artist.exists():
+                return rest.make_error(code='70', message='Folder not found')
+        else:
+            return rest.make_error(code='10', message='Required int parameter "id" is not present')
+
+        count = int(kwargs.get('count', 20))
+        if kwargs.get('includeNotPresent'):
+            includeNotPresent = True if kwargs.get('includeNotPresent') == 'true' else False
+        else:
+            includeNotPresent = False
+
+        root = etree.Element('subsonic-response', status='ok', version=API_VERSION)
+        xml_artist_info = rest.make_ArtistInfo2(
+            artist, count=count, includeNotPresent=includeNotPresent
+        )
+        root.append(xml_artist_info)
 
         return request.make_response(
             etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True)

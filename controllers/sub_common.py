@@ -143,9 +143,9 @@ class SubsonicREST():
     def make_Index(self, index):
         return etree.Element('index', name=index)
 
-    def make_Artist(self, folder):
+    def make_Artist(self, folder, tag_name='artist'):
         elem_artist = etree.Element(
-            'artist',
+            tag_name,
             id=str(folder.id),
             name=os.path.basename(folder.path),
         )
@@ -337,3 +337,42 @@ class SubsonicREST():
             elem_album.set('playCount', str(sum(album.track_ids.mapped('play_count'))))
 
         return elem_album
+
+    def make_Videos(self):
+        return etree.Element('videos')
+
+    def _make_ArtistInfoBase(self, artist):
+        # TODO: support all tags
+        list_artist_info = []
+
+        if artist.fm_getinfo:
+            info = etree.Element('biography')
+            info.text = artist.fm_getinfo
+            list_artist_info.append(info)
+
+        return list_artist_info
+
+    def make_ArtistInfo(self, folder, count=20, includeNotPresent=False):
+        elem_artist_info = etree.Element('artistInfo')
+
+        artist = request.env['oomusic.artist'].search([
+            ('name', 'ilike', os.path.basename(folder.path))
+        ])
+        base_artist_info = self._make_ArtistInfoBase(artist)
+        for elem in base_artist_info:
+            elem_artist_info.append(elem)
+
+        # TODO: support similar artists
+
+        return elem_artist_info
+
+    def make_ArtistInfo2(self, artist, count=20, includeNotPresent=False):
+        elem_artist_info = etree.Element('artistInfo2')
+
+        base_artist_info = self._make_ArtistInfoBase(artist)
+        for elem in base_artist_info:
+            elem_artist_info.append(elem)
+
+        # TODO: support similar artists
+
+        return elem_artist_info
