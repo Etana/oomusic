@@ -213,9 +213,9 @@ class SubsonicREST():
 
         return elem_track
 
-    def make_Child_folder(self, folder):
+    def make_Child_folder(self, folder, tag_name='child'):
         elem_directory = etree.Element(
-            'child',
+            tag_name,
             id=str(folder.id),
             isDir='true',
             title=os.path.basename(folder.path),
@@ -417,6 +417,9 @@ class SubsonicREST():
                 elem_song_info.append(self.make_Child_track(track, tag_name='song'))
 
         return elem_song_info
+
+    def make_AlbumList(self):
+        return etree.Element('albumList')
 
     def make_AlbumList2(self):
         return etree.Element('albumList2')
