@@ -46,3 +46,22 @@ class MusicController(http.Controller):
         data = wrap_file(
             request.httprequest.environ, generator, buffer_size=Transcoder.buffer_size * 1024)
         return Response(data, mimetype=mimetype, direct_passthrough=True)
+
+    @http.route([
+        '/oomusic/playlist/<int:playlist_id>.m3u'
+        ], type='http', auth='public')
+    def playlist(self, playlist_id, **kwargs):
+        playlist = request.env['oomusic.playlist'].sudo().browse(playlist_id)
+        base_url = request.env['ir.config_parameter'].get_param('web.base.url')
+        tracks_urls = []
+        for playlist_line in playlist.playlist_line_ids:
+            track_pathname = playlist_line.track_id._oomusic_info()['mp3'].replace('/trans/', '/sudotrans/')
+            tracks_urls.append('{}{}'.format(base_url, track_pathname))
+        return Response('\n'.join(tracks_urls), content_type='text/plain')
+
+    @http.route([
+        '/oomusic/sudotrans/<int:track_id>.<string:output_format>',
+        ], type='http', auth='public')
+    def sudotrans(self, *argv, **kwargs):
+        request.uid = 1
+        return self.trans(*argv, **kwargs)
